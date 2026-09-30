@@ -40,6 +40,31 @@ export interface AppConfig {
   mpPayerEmail: string;
 }
 
+/**
+ * Determina si el proceso corre en "producción" a efectos de la validación de arranque.
+ *
+ * Detección de producción basada en una variable **explícita** `APP_ENV` para no depender
+ * de convenciones del host:
+ * - `APP_ENV === 'production'` ⇒ producción (validación estricta activa).
+ * - `APP_ENV` presente con cualquier otro valor ⇒ NO producción (aunque `NODE_ENV` sea
+ *   `'production'`): `APP_ENV` explícito **prevalece** sobre `NODE_ENV`.
+ * - `APP_ENV` ausente ⇒ se consulta `NODE_ENV` como respaldo (`'production'` ⇒ producción).
+ *
+ * Referencia de diseño: design.md → "Detección de 'producción'" (Req. 4.3). Algunos hosts
+ * fijan `NODE_ENV=production` automáticamente; `APP_ENV` hace la intención inequívoca y manda.
+ *
+ * @param env Entorno del proceso; se leen `APP_ENV` y, como respaldo, `NODE_ENV`.
+ */
+export function isProductionEnv(env: NodeJS.ProcessEnv = process.env): boolean {
+  const appEnv = env.APP_ENV;
+  if (appEnv !== undefined) {
+    // `APP_ENV` explícito manda sobre `NODE_ENV`.
+    return appEnv === 'production';
+  }
+  // Sin `APP_ENV`, se consulta `NODE_ENV` como respaldo.
+  return env.NODE_ENV === 'production';
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsedPort = Number.parseInt(env.PORT ?? '', 10);
   const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
